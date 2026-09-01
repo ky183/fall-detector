@@ -1,0 +1,20 @@
+# Arduino / 编译产物
+build/
+build_cache/
+*.hex
+*.bin
+*.elf
+*.map
+
+# VS Code（保留公共配置）
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+
+# 操作系统
+Thumbs.db
+.DS_Store
+
+# 密钥（WiFi 密码、WxPusher token 等）
+secrets.h
+*_secrets.h
