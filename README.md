@@ -2,7 +2,7 @@
 
 清华大学第29届硬件设计大赛 · 民生赛道
 
-面向**独居老人**的可穿戴跌倒检测报警器。手腕端采集姿态，腰部融合判断，跌倒时蜂鸣器报警 + OLED 显示 + 按钮取消 + WxPusher 微信推送。
+面向**独居老人**的可穿戴跌倒检测报警器：手腕端采集姿态，腰部融合判断，跌倒时蜂鸣器报警 + OLED 显示 + 按钮取消 + WxPusher 微信推送。
 
 ## 系统架构（双板 ESP-NOW）
 
@@ -14,19 +14,31 @@
 ## 目录结构
 
 ```
-├── waist_firmware/      # 腰端固件（ESP32-S3 主控）
-│   ├── waist_firmware.ino
-│   └── config.h
-├── wrist_firmware/      # 腕端固件（XIAO ESP32C3）
-│   ├── wrist_firmware.ino
-│   └── config.h
-├── docs/                # 规划书、资料
-└── .vscode/             # VS Code 编辑配置
+├── firmware/               # 固件源码
+│   ├── waist_firmware/     # 腰端固件（ESP32-S3 主控）
+│   └── wrist_firmware/     # 腕端固件（XIAO ESP32C3）
+├── docs/                   # 文档
+│   ├── plan/               # 规划书、开发计划
+│   ├── notes/              # 开发笔记、踩坑记录
+│   └── defense/            # 答辩材料
+├── hardware/               # 硬件资料
+│   ├── schematic/          # 原理图
+│   ├── pcb/                # PCB 文件
+│   ├── enclosure/          # 3D 打印外壳
+│   └── bom/                # 物料清单
+├── bin/                    # 烧录文件（编译好的 .bin，交付物）
+│   ├── waist/              # 腰端固件烧录文件
+│   └── wrist/              # 腕端固件烧录文件
+├── tools/                  # 工具脚本（烧录脚本等）
+├── assets/                 # 演示素材（视频/图片）
+└── test/                   # 测试记录
+    └── logs/               # 测试日志
 ```
 
 ## 引脚分配
 
 **腰端（ESP32-S3）**
+
 | 功能 | 引脚 |
 |------|------|
 | I2C SDA（MPU6050#2 + OLED） | GPIO8 |
@@ -36,6 +48,7 @@
 | 按钮2（唤醒/自检） | GPIO6 |
 
 **腕端（XIAO ESP32C3）**
+
 | 功能 | 引脚 |
 |------|------|
 | I2C SDA（MPU6050#1） | D4（GPIO6） |
@@ -50,10 +63,10 @@
 
 ## 快速开始
 
-1. 打开 `waist_firmware/waist_firmware.ino`，板子选 **ESP32S3 Dev Module**，烧录到腰端。
-2. 打开 `wrist_firmware/wrist_firmware.ino`，板子选 **ESP32C3 Dev Module**（或 XIAO_ESP32C3），烧录到腕端。
+1. 打开 `firmware/waist_firmware/waist_firmware.ino`，板子选 **ESP32S3 Dev Module**，烧录到腰端。
+2. 打开 `firmware/wrist_firmware/wrist_firmware.ino`，板子选 **ESP32C3 Dev Module**（或 XIAO_ESP32C3），烧录到腕端。
 3. 串口波特率 `115200`。
 
 ## 开发计划
 
-见 `docs/` 目录与项目规划书（Step 0~7，两周）。
+见 `docs/plan/` 与项目规划书（Step 0~7，两周）。

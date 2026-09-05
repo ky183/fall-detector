@@ -1,10 +1,10 @@
-# Arduino / 编译产物
+# Arduino 编译缓存 / 中间产物
 build/
 build_cache/
-*.hex
-*.bin
+*.o
 *.elf
 *.map
+*.d
 
 # VS Code（保留公共配置）
 .vscode/*
@@ -15,6 +15,6 @@ build_cache/
 Thumbs.db
 .DS_Store
 
-# 密钥（WiFi 密码、WxPusher token 等）
+# 密钥（WiFi 密码、WxPusher token 等，禁止提交）
 secrets.h
 *_secrets.h
