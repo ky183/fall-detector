@@ -40,11 +40,11 @@ void alarm_tick(void) {
 
     uint32_t elapsed = millis() - s_start_ms;
 
-    // —— 取消窗口超时：推送（只推一次），进入 SENT 继续响 ——
+    // —— 取消窗口超时：推送（入队，立即返回，HTTP 在推送任务里慢慢做）——
     if (s_state == ST_WAIT_CANCEL && elapsed >= ALARM_CANCEL_WINDOW_MS) {
         s_state = ST_SENT;
-        bool ok = pusher_send_fall_alert(elapsed / 1000);
-        LOG_I("ALRM", "cancel window over -> push alert (ok=%d), keep buzzing", ok);
+        bool queued = pusher_queue_fall_alert(elapsed / 1000);
+        LOG_I("ALRM", "cancel window over -> alert queued=%d, keep buzzing", queued);
     }
 
     // —— 哔哔节拍：按绝对时间取相位，不依赖 tick 对齐 ——

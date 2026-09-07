@@ -33,7 +33,8 @@
 #define SAMPLE_HZ           50      // 本地 MPU 采样率
 #define BUTTON_POLL_MS      50      // 按钮扫描周期
 #define ALARM_TICK_MS       100     // 报警状态机步进周期
-#define STAT_PERIOD_MS      1000    // 接收统计打印周期
+#define STAT_PERIOD_MS      10000   // 链路统计打印周期：联调阶段可改 1000 看实时丢包，
+                                    // 平时 10 秒一条即可；想完全关闭把 LOG_LEVEL 改 2
 
 // ================= 分级调试开关 =================
 #define LOG_LEVEL           3       // 0=关 1=错误 2=信息 3=调试
@@ -45,7 +46,16 @@
 
 #define ENABLE_FALL_DETECT  0       // ★跌倒判定算法（算法组负责）
                                     // 0 = 算法未启用，仅腕端"长按模拟跌倒"可触发报警
-#define ENABLE_WIFI_PUSH    0       // 微信推送（Step 5 实现，当前为占位）
+#define ENABLE_WIFI_PUSH    1       // 微信推送（已实现：队列+独立任务+WxPusher HTTPS）
+                                    // 启用步骤：复制 secrets.h.example 为 secrets.h 填真实值，
+                                    // 再把本开关置 1
+#define WIFI_TIMEOUT_MS     10000   // 推送时 WiFi 连接超时（毫秒）
+
+// ================= 推送文案（改这里即可，保持 UTF-8 编码） =================
+// %lu 位置会替换成"报警后经过的秒数"
+#define PUSH_SUMMARY        "跌倒报警"                              // 微信消息列表里的标题
+#define PUSH_CONTENT_HEAD   "警报：检测到佩戴者跌倒，已持续 "          // 正文前半
+#define PUSH_CONTENT_TAIL   " 秒未取消！请立即联系老人确认情况。"      // 正事后半
 
 // ================= 系统参数 =================
 #define SERIAL_BAUD         115200

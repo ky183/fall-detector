@@ -110,7 +110,7 @@ static void task_display(void* pv) {
 void setup() {
     Serial.begin(SERIAL_BAUD);
     delay(200);
-    LOG_I("SYS", "=== wrist firmware v0.1 (skeleton) ===");
+    LOG_I("SYS", "=== wrist firmware v0.2 (btn=D2/GPIO3) ===");
 
     // I2C 总线先行（OLED 与 MPU 共用）
     Wire.begin(PIN_I2C_SDA, PIN_I2C_SCL);

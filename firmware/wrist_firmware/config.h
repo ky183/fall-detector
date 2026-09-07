@@ -10,9 +10,9 @@
 // 依据官方板卡包 variants/XIAO_ESP32S3/pins_arduino.h
 #define PIN_I2C_SDA         5       // OLED + MPU6050 共用 I2C 总线
 #define PIN_I2C_SCL         6
-#define PIN_BTN_1           2       // 交互按钮（丝印 D1），另一端接 GND，内部上拉
+#define PIN_BTN_1           3       // 交互按钮（丝印 D2/GPIO3），另一端接 GND，内部上拉
+                                    // 注：原定 D1(GPIO2)，实测该脚虚焊无响应，2026-09-07 迁移到 D2
                                     // 短按 = OLED 翻页/交互；长按 = 模拟跌倒（调试用）
-                                    // 取消报警按钮在腰端（与蜂鸣器同端，不经无线，最可靠）
 // 电池直接焊 BAT+/BAT- 焊盘，不占 GPIO
 
 // ================= 设备 I2C 地址 =================

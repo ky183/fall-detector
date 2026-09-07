@@ -23,6 +23,7 @@
 #include "fall_detector.h"
 #include "alarm_manager.h"
 #include "net_espnow.h"
+#include "net_pusher.h"
 #include <Wire.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
@@ -127,6 +128,11 @@ void setup() {
     espnow_init();
 #else
     LOG_I("SYS", "ESP-NOW disabled");
+#endif
+
+#if ENABLE_WIFI_PUSH
+    pusher_init();   // 推送队列 + 最低优先级推送任务
+    LOG_I("SYS", "wifi push enabled");
 #endif
 
     // —— 创建任务（core1）——

@@ -39,7 +39,7 @@ void oled_show_boot(void) {
     display.setTextSize(1);
     display.setCursor(0, 0);
     display.println("FALL DETECTOR");
-    display.println("wrist v0.1");
+    display.println("wrist v0.2");
     display.println("booting...");
     display.display();
 #endif
