@@ -20,7 +20,10 @@
 #define ADDR_MPU6050        0x68    // 腰端 MPU（实测可能是 MPU6500，驱动兼容）
 
 // ================= ESP-NOW 通信 =================
-#define ESPNOW_CHANNEL      1       // 与腕端一致（有效范围 1~13）
+// ★常连模式(PUSH_ALWAYS_ON=1)约束：必须与热点信道一致（单射频只有一个信道）！
+//   上次实测 vivo 热点在 ch6。串口看 "WiFi connected ... ch=X"，
+//   若 X != 本值会有 [PUSH] !! 告警 —— 按实际信道改这里和腕端 config.h
+#define ESPNOW_CHANNEL      6       // 与腕端一致（有效范围 1~13）
 // 腕端 MAC：当前不做过滤（按包内 devId 过滤），联调稳定后可改单播
 
 // ================= 报警参数 =================
@@ -41,15 +44,40 @@
 
 #define ENABLE_MPU6050      1       // 0 = 不读本地 MPU（只收腕端数据调试链路）
 #define ENABLE_ESPNOW       1       // 0 = 不初始化无线（单板调试蜂鸣器/按钮）
-#define ENABLE_BUZZER       1       // 0 = 不响（调试时防止吵）
+#define ENABLE_BUZZER       0       // 0 = 不响（调试时防止吵）
 #define ENABLE_BUTTON       1       // 0 = 不扫描按钮
 
-#define ENABLE_FALL_DETECT  0       // ★跌倒判定算法（算法组负责）
-                                    // 0 = 算法未启用，仅腕端"长按模拟跌倒"可触发报警
+#define ENABLE_FALL_DETECT  1       // ★跌倒判定算法（已实现：三阶段触发+小随机森林）
+                                    // 0 = 未启用，仅腕端"长按模拟跌倒"可触发报警（联调用）
+                                    // 1 = 启用板上算法（上板验证通过后打开）
+// ---- 算法参数（由 algo/04_threshold.py 在训练集上标定，改动需重评）----
+#define FD_TRIGGER_SVM      30.0f   // 冲击触发阈值 m/s²（≈3.1g）
+#define FD_TRIGGER_GYR      200.0f  // 角速度触发阈值 °/s（与 SVM 满足其一即触发）
+#define FD_RF_THRESHOLD     0.40f   // 随机森林判决门限：灵敏96% 特异98.4% 老年FP4.6%
+                                    // （调低更灵敏误报升；自采数据验证后可微调）
+#define FD_BASELINE_MS      5000    // 开机站姿基线采集时长（期间不判定，需保持站立）
+#define FD_COLLECT_MS       3500    // 触发后确认窗采集时长（峰值+3s 确认窗）
+
+// ---- 腕端融合 v1：否决票（自采数据验证标定后再启用）----
+// 逻辑：腕端链路健康 && 腰端强冲击 && 腕端几乎没动 -> 判为"装置被磕碰"否决报警。
+// 三个阈值均为工程初值，待自采数据回放标定（wrist 数据无论开关都记录在串口）
+#define ENABLE_WRIST_FUSION      0       // 1=启用腕端否决票（腕端需开机且链路正常）
+#define FUSION_MIN_COVERAGE      0.6f    // 腕端冲击窗数据覆盖率下限（低于=数据不可信，不否决）
+#define FUSION_VETO_WAIST_STRONG 30.0f   // 腰端冲击峰值下限 m/s²（约3g）
+#define FUSION_VETO_WRIST_QUIET  12.0f   // 腕端峰值上限 m/s²（约1.2g，静止水平）
+#define WRIST_FRESH_MS           200     // 腕端数据新鲜度判据（remoteAge 小于此=有效样本）
+
 #define ENABLE_WIFI_PUSH    1       // 微信推送（已实现：队列+独立任务+WxPusher HTTPS）
                                     // 启用步骤：复制 secrets.h.example 为 secrets.h 填真实值，
                                     // 再把本开关置 1
 #define WIFI_TIMEOUT_MS     10000   // 推送时 WiFi 连接超时（毫秒）
+
+// ---- 推送工作模式 ----
+#define PUSH_ALWAYS_ON      1       // 1=常连模式：开机连WiFi并保持，推送即时（演示用）
+                                    // 0=按需连接：报警才连，推完释放信道给ESP-NOW
+                                    // 常连模式前提：热点信道 == ESPNOW_CHANNEL（见上）
+#define PUSH_RECONNECT_MS   60000   // 常连模式掉线后的静默重连间隔
+#define PUSH_MAX_ATTEMPTS   6       // 推送失败重试次数（间隔15s，补救窗口约90s+）
 
 // ================= 推送文案（改这里即可，保持 UTF-8 编码） =================
 // %lu 位置会替换成"报警后经过的秒数"

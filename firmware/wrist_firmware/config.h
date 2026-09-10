@@ -31,7 +31,9 @@
 #define BTN_LONG_PRESS_MS   1000    // 长按判定阈值
 
 // ================= ESP-NOW 通信 =================
-#define ESPNOW_CHANNEL      1       // WiFi 信道（有效范围 1~13），两端必须一致
+// ★必须与腰端 ESPNOW_CHANNEL 一致；腰端常连WiFi模式下该值还须等于热点信道
+//   （2026-09-10 改 6 以匹配 vivo 热点实测信道，腰端串口有失配告警）
+#define ESPNOW_CHANNEL      6       // WiFi 信道（有效范围 1~13），两端必须一致
 // 腰端 MAC 地址：占位为广播地址（腰端上线后，用其串口打印的实际 MAC 替换）
 // 广播模式下腰端也能收到，仅少一层地址过滤，Step 3 联调时改为单播
 #define WAIST_MAC           {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}

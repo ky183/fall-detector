@@ -18,3 +18,7 @@ Thumbs.db
 # 密钥（WiFi 密码、WxPusher token 等，禁止提交）
 secrets.h
 *_secrets.h
+
+# 算法数据集（体积大，组员各自下载）
+algo/data/
+algo/reference/
