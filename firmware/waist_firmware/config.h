@@ -67,9 +67,25 @@
 #define FUSION_VETO_WRIST_QUIET  12.0f   // 腕端峰值上限 m/s²（约1.2g，静止水平）
 #define WRIST_FRESH_MS           200     // 腕端数据新鲜度判据（remoteAge 小于此=有效样本）
 
+// ---- CNN 二级仲裁（第二级判决，实现见 cnn_detector.cpp / cnn_weights.h）----
+// 架构：随机森林仍是主判决（三阶段触发 -> 特征 -> RF）。
+//       CNN 只在"腰端已触发冲击 + 判定时腕端链路在线"时补跑一次推理
+//       （每次事件最多 1 次），不参与常态判决，CPU 开销可忽略。
+//       腕端不在线 / 仲裁窗覆盖率不足 -> 直接不跑，行为完全回退到纯 RF。
+// 训练/导出链路：algo/cnn/cnn_train.py -> firmware/waist_firmware/cnn_weights.h
+#define ENABLE_CNN_ARBITER  1       // 1=启用 CNN 二级仲裁（0=纯 RF，与 v2 行为一致）
+#define CNN_ROLE_RESCUE     1       // 1=允许 CNN 补判 RF 漏掉的跌倒（补漏报）
+                                    //   与产品口径一致：漏报代价 >> 误报代价
+#define CNN_ROLE_VETO       0       // 1=允许 CNN 否决 RF 的"跌倒"判决（压误报）
+                                    //   ★ 会压低灵敏度，须用自采数据标定后再开
+#define CNN_FALL_THRESHOLD  0.80f   // CNN 判"跌倒"门限（＝训练侧部署门限）
+#define CNN_CALM_THRESHOLD  0.20f   // CNN 判"明确非跌倒"门限（仅否决票用）
+#define CNN_MIN_COVERAGE    0.6f    // 仲裁窗腕端覆盖率下限（同 FUSION_MIN_COVERAGE 口径）
+
 #define ENABLE_WIFI_PUSH    1       // 微信推送（已实现：队列+独立任务+WxPusher HTTPS）
-                                    // 启用步骤：复制 secrets.h.example 为 secrets.h 填真实值，
-                                    // 再把本开关置 1
+                                    // 需要 secrets.h（复制 secrets.h.example 填真实值）
+                                    // ★ 该文件不入库；缺失时 net_pusher 自动降级为
+                                    //   占位实现并给编译告警，不会让工程编译不过
 #define WIFI_TIMEOUT_MS     10000   // 推送时 WiFi 连接超时（毫秒）
 
 // ---- 推送工作模式 ----

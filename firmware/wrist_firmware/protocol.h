@@ -1,7 +1,8 @@
 #pragma once
 // ============================================================
 //  板间通信协议（腕端 ↔ 腰端，ESP-NOW 载荷）
-//  ★ 两端共用：腰端固件需要复制本文件，修改必须同步两端
+//  ★ 两端共用：waist_firmware/protocol.h 与 wrist_firmware/protocol.h
+//    必须逐字节一致，任何修改都要同步复制到两端
 //
 //  包结构（共 38 字节，ESP-NOW 上限 250 字节，余量充足）：
 //    PacketHeader(4B) + payload union(33B) + checksum(1B)

@@ -81,9 +81,17 @@ def c_mirror_predict(nodes, starts, x):
 
 
 def flit(v: float) -> str:
-    """浮点 -> 合法 C 字面量。坑：%.9g 会把 0.0 输出成 '0'，拼成 '0f' 非法，
-    必须保证小数点存在（'0.0f'）"""
-    s = f"{v:.9g}"
+    """浮点 -> 合法 C 字面量。两个坑：
+
+    1. %.9g 会把 0.0 输出成 '0'，拼成 '0f' 非法 -> 必须保证小数点存在
+    2. ★ C 端存的是 float(32 位)，必须**先降到 float32 再取 9 位有效数字**。
+       直接对 float64 取 9 位会丢 1 ULP：例如 24/99 的 float64 取 9 位得
+       '0.242424242'，解析回 float32 是 0.24242423，而 C 端期望的是
+       float32(24/99) = 0.24242425。全表 2166 个值里有 2 个这种情况，
+       会让 rf_model.h 与 rf_model.json 的判决在门限附近不再逐位一致
+       （tools/check_consistency.py 会报出来）。
+    """
+    s = f"{float(np.float32(v)):.9g}"
     if not any(c in s for c in ".eE"):
         s += ".0"
     return s + "f"
