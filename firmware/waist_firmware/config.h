@@ -74,8 +74,11 @@
 //       腕端不在线 / 仲裁窗覆盖率不足 -> 直接不跑，行为完全回退到纯 RF。
 // 训练/导出链路：algo/cnn/cnn_train.py -> firmware/waist_firmware/cnn_weights.h
 #define ENABLE_CNN_ARBITER  1       // 1=启用 CNN 二级仲裁（0=纯 RF，与 v2 行为一致）
-#define CNN_ROLE_RESCUE     1       // 1=允许 CNN 补判 RF 漏掉的跌倒（补漏报）
-                                    //   与产品口径一致：漏报代价 >> 误报代价
+#define CNN_ROLE_RESCUE     0       // 1=允许 CNN 补判 RF 漏掉的跌倒（补漏报）
+                                    //   ★ 2026-09-11 影子模式：当前 CNN 尚未经过
+                                    //   按人划分的真实评估，不允许它改变判决结果。
+                                    //   影子期只看日志（decision 后的 "cnn p=..." 行），
+                                    //   攒够"RF 对/错 × CNN 高/低"对照数据后再开
 #define CNN_ROLE_VETO       0       // 1=允许 CNN 否决 RF 的"跌倒"判决（压误报）
                                     //   ★ 会压低灵敏度，须用自采数据标定后再开
 #define CNN_FALL_THRESHOLD  0.80f   // CNN 判"跌倒"门限（＝训练侧部署门限）
