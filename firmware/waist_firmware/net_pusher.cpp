@@ -16,7 +16,25 @@
 #include "logger.h"
 #include "config.h"
 
+// secrets.h 里有 WiFi 密码与 WxPusher Token，已被 .gitignore 排除：
+//   **新克隆的仓库里没有这个文件**。若无条件 #include，腰端固件会直接编译
+//   不过（而且报错信息只是"secrets.h: No such file"，很难定位）。
+//   所以这里先探测再决定：有则启用真实推送，没有则自动降级为占位实现，
+//   保证仓库一拉下来就能编译、能烧录调试其余模块。
+#ifndef __has_include
+#define __has_include(x) 0     // 老工具链兜底：一律视作没有 secrets.h
+#endif
+
+#if ENABLE_WIFI_PUSH && __has_include("secrets.h")
+#define PUSH_REAL 1
+#else
+#define PUSH_REAL 0
 #if ENABLE_WIFI_PUSH
+#warning "ENABLE_WIFI_PUSH=1 但未找到 secrets.h（模板见 secrets.h.example）：微信推送降级为占位实现，填好凭据后重编译即恢复"
+#endif
+#endif
+
+#if PUSH_REAL
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 #include <HTTPClient.h>
@@ -176,12 +194,12 @@ bool pusher_queue_fall_alert(uint32_t delaySec) {
     return true;
 }
 
-#else   // ---------- 占位实现 ----------
+#else   // ---------- 占位实现（未启用推送，或缺少 secrets.h）----------
 
 bool pusher_init(void) { return true; }
 
 bool pusher_queue_fall_alert(uint32_t delaySec) {
-    LOG_I("PUSH", "[placeholder] fall alert, delay=%us (ENABLE_WIFI_PUSH=0)", delaySec);
+    LOG_I("PUSH", "[placeholder] fall alert, delay=%us (PUSH_REAL=0)", delaySec);
     return true;
 }
 

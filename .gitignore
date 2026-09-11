@@ -22,3 +22,10 @@ secrets.h
 # 算法数据集（体积大，组员各自下载）
 algo/data/
 algo/reference/
+
+# Python 缓存
+__pycache__/
+*.pyc
+
+# 宿主回放构建产物（g++ 编出的 .exe 与临时拷贝的源码）
+algo/cnn/host_replay/.build/

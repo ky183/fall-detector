@@ -1,5 +1,5 @@
 // ============================================================
-//  ★ 跌倒判定算法 — 三阶段触发 + 小随机森林精判（v2）★
+//  ★ 跌倒判定算法 — 三阶段触发 + 小随机森林精判（v2）+ CNN 二级仲裁 ★
 //  训练/评估/导出全流程见仓库 algo/ 目录（SisFall 数据集，38 人）
 //  离线指标（留出集=5 个全新受试者）：灵敏度 96.0% 特异度 98.4%
 //  老年组（SE）日常误报 4.6%，SE06 老人真摔检出 85.3%
@@ -20,8 +20,14 @@
 //    窗口/特征  见下方 WINDOW 注释     <-> algo/02_features.py extract_one()
 //    量程裁剪   CLIP_ACC/CLIP_GYR      <-> 同名常量（训练时已按硬件量程）
 //    森林       rf_model.h（自动生成） <-> algo/05_export.py
+//
+//  ★ 二级仲裁：CNN 只在"触发后 + 腕端在线"时跑一次 ★
+//    主判决仍是上面的 RF；CNN 不参与常态判决，只用 RF 用不到的
+//    腕端 6 通道信息做补判/否决（角色开关见 config.h 的 CNN_ROLE_*）。
+//    训练/评估见 algo/cnn/，权重 cnn_weights.h，实现 cnn_detector.cpp
 // ============================================================
 #include "fall_detector.h"
+#include "cnn_detector.h"    // CNN 二级仲裁（仅在 decide() 内调用）
 #include "rf_model.h"
 #include "logger.h"
 #include "config.h"
@@ -182,12 +188,58 @@ static void decide() {
     }
 #endif
 
+    // ---- CNN 二级仲裁（第二级判决，见 cnn_detector.h）----
+    // decide() 本身只会在冲击触发后被调用且只调一次，所以这里天然满足
+    // "只在触发后跑"；再用覆盖率卡住"腕端在线"这一条。
+    // 锚点复用同一个 iP，仲裁窗 = 以冲击峰值为中心的 2s。
+    dbg.cnnRan      = false;
+    dbg.cnnProba    = -1.0f;
+    dbg.cnnCoverage = 0.0f;
+    dbg.cnnVetoed   = false;
+    dbg.cnnRescued  = false;
+#if ENABLE_CNN_ARBITER
+    {
+        int   anchorAgo = (eN - 1) - iP;   // 锚点距今多少个 50Hz 样本
+        float cnnP = -1.0f, cnnCov = 0.0f;
+        dbg.cnnRan = cnn_detector_prob(anchorAgo, CNN_MIN_COVERAGE,
+                                       &cnnP, &cnnCov);
+        if (dbg.cnnRan) dbg.cnnProba = cnnP;
+        dbg.cnnCoverage = cnnCov;
+    }
+#endif
+
+    // ---- 两级判决合成 ----
+    // 第一级：RF 主判决（含旧的腕端否决票），行为与 v2 一致
+    bool fire = !dbg.vetoed && (p >= FD_RF_THRESHOLD);
+#if ENABLE_CNN_ARBITER && (CNN_ROLE_VETO || CNN_ROLE_RESCUE)
+    if (dbg.cnnRan) {
+#if CNN_ROLE_VETO
+        // 否决：RF 判跌倒、CNN 高置信否认 -> 压掉这次报警（会降灵敏度）
+        if (fire && dbg.cnnProba <= CNN_CALM_THRESHOLD) {
+            fire = false;
+            dbg.cnnVetoed = true;
+        }
+#endif
+#if CNN_ROLE_RESCUE
+        // 补判：RF 未判跌倒、CNN 高置信确认 -> 补一次报警（只增不减）
+        if (!fire && dbg.cnnProba >= CNN_FALL_THRESHOLD) {
+            fire = true;
+            dbg.cnnRescued = true;
+        }
+#endif
+    }
+#endif
+
     LOG_I("DETC", "decision proba=%.2f peak=%.1fm/s2 tilt=%.0fdeg "
           "gyr=%.0fdps wrist=%.1f/cov%.0f%% proba_th=%.2f (%lums)",
           p, feats[0], feats[5], feats[7], wPeak, wCov * 100,
           FD_RF_THRESHOLD, (unsigned long)dbg.decideMs);
+    LOG_I("DETC", "cnn %-4s p=%.2f cov=%.0f%% th=%.2f%s%s",
+          dbg.cnnRan ? "ran" : "skip", dbg.cnnProba, dbg.cnnCoverage * 100,
+          CNN_FALL_THRESHOLD,
+          dbg.cnnVetoed ? " VETO" : "", dbg.cnnRescued ? " RESCUE" : "");
 
-    if (!dbg.vetoed && p >= FD_RF_THRESHOLD) {
+    if (fire) {
         st = ST_LATCHED;
         pendingConfirm = true;
     } else {
@@ -198,6 +250,10 @@ static void decide() {
 
 // ================= 主入口（50Hz） =================
 FallEvent fall_detector_update(const FallInput& in) {
+    // CNN 二级仲裁的 50Hz 历史：每拍都要喂（基线期/锁存期也喂），
+    // 否则判定时锚点窗口里会出现空洞
+    cnn_detector_push(in);
+
     const SensorData& s = in.local;
     float svm = fminf(s.svm, CLIP_ACC);
     float gm  = fminf(sqrtf(s.gx * s.gx + s.gy * s.gy + s.gz * s.gz), CLIP_GYR);
@@ -274,6 +330,7 @@ void fall_detector_reset(void) {
     eN = 0;
     pendingConfirm = false;
     dbg.valid = false;
+    cnn_detector_reset();   // 历史清空；随后 5s 基线期足以重新填满仲裁窗
     LOG_I("DETC", "reset -> re-baseline");
 }
 
