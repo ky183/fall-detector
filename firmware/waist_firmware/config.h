@@ -8,7 +8,8 @@
 // ================= 硬件引脚（大板排针 H4） =================
 #define PIN_I2C_SDA         8       // MPU6050#2，排针 H4 第12脚，开漏需上拉
 #define PIN_I2C_SCL         9       // 排针 H4 第15脚
-#define PIN_BUZZER          4       // 无源蜂鸣器（经 S8050 驱动，基极串 1kΩ），H4 第4脚
+#define PIN_BUZZER          4       // 有源蜂鸣器模块（板载 S8050 驱动，高电平响），H4 第4脚
+                                    // 接线：VCC→5V，GND→GND，I/O→本脚；2026-09-10 采购
 #define PIN_BTN_CANCEL      5       // 取消报警按钮，H4 第5脚，另一端接 GND
 
 // ================= 大板注意事项（烧录/供电） =================
@@ -26,11 +27,13 @@
 #define ESPNOW_CHANNEL      6       // 与腕端一致（有效范围 1~13）
 // 腕端 MAC：当前不做过滤（按包内 devId 过滤），联调稳定后可改单播
 
-// ================= 报警参数 =================
+// ================= 报警参数（有源蜂鸣器：固定音调，节奏由通断时序控制） =================
 #define ALARM_CANCEL_WINDOW_MS   10000   // 触发报警后的取消窗口（毫秒）
-#define BUZZER_FREQ_HZ           2700    // 无源蜂鸣器谐振频率（响度最大）
-#define ALARM_BEEP_ON_MS         300     // 哔声时长（间歇模式）
-#define ALARM_BEEP_PERIOD_MS     500     // 哔声周期（300 响 + 200 停）
+// 两段式报警音：取消窗内急促短哔（提醒本人取消），推送后转长鸣（吸引周围人）
+#define ALARM_BEEP_ON_MS         300     // 阶段1（取消窗内）哔声时长
+#define ALARM_BEEP_PERIOD_MS     500     // 阶段1 哔声周期（300 响 + 200 停）
+#define ALARM_BEEP_ON_MS_LATE    800     // 阶段2（已推送）哔声时长
+#define ALARM_BEEP_PERIOD_MS_LATE 1000   // 阶段2 哔声周期（800 响 + 200 停）
 
 // ================= 采样与任务参数 =================
 #define SAMPLE_HZ           50      // 本地 MPU 采样率
@@ -44,7 +47,7 @@
 
 #define ENABLE_MPU6050      1       // 0 = 不读本地 MPU（只收腕端数据调试链路）
 #define ENABLE_ESPNOW       1       // 0 = 不初始化无线（单板调试蜂鸣器/按钮）
-#define ENABLE_BUZZER       0       // 0 = 不响（调试时防止吵）
+#define ENABLE_BUZZER       1       // 0 = 不响（调试时防止吵）；有源模块已接线后置 1
 #define ENABLE_BUTTON       1       // 0 = 不扫描按钮
 
 #define ENABLE_FALL_DETECT  1       // ★跌倒判定算法（已实现：三阶段触发+小随机森林）

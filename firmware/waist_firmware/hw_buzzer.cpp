@@ -1,7 +1,10 @@
 // ============================================================
-//  蜂鸣器（腰端）实现
-//  无源蜂鸣器需要方波驱动：tone(pin, freq) 输出 50% 方波
-//  声响模式由 alarm_manager 控制（哔哔间歇），本模块只管发声
+//  蜂鸣器（腰端）实现 — 有源蜂鸣器模块（高电平触发）
+//  有源 = 内置振荡源，通电即响（固定音调），无需 tone()/PWM。
+//  声响节奏（两段式间歇哔哔）由 alarm_manager 的 tick 驱动，
+//  本模块只管"响/不响"两个原语。
+//  历史：无源蜂鸣器 + tone(2700Hz) 方案已于 2026-09-13 随有源
+//  模块到货作废（BUZZER_FREQ_HZ 一并移除）。
 // ============================================================
 #include "hw_buzzer.h"
 #include "config.h"
@@ -15,13 +18,13 @@ void buzzer_init(void) {
 
 void buzzer_beep_on(void) {
 #if ENABLE_BUZZER
-    tone(PIN_BUZZER, BUZZER_FREQ_HZ);
+    digitalWrite(PIN_BUZZER, HIGH);  // 高电平 = 响
 #endif
 }
 
 void buzzer_beep_off(void) {
 #if ENABLE_BUZZER
-    noTone(PIN_BUZZER);
+    digitalWrite(PIN_BUZZER, LOW);   // 低电平 = 停
 #endif
 }
 

@@ -47,8 +47,12 @@ void alarm_tick(void) {
         LOG_I("ALRM", "cancel window over -> alert queued=%d, keep buzzing", queued);
     }
 
-    // —— 哔哔节拍：按绝对时间取相位，不依赖 tick 对齐 ——
-    bool on = (elapsed % ALARM_BEEP_PERIOD_MS) < ALARM_BEEP_ON_MS;
+    // —— 哔哔节拍（两段式）：按绝对时间取相位，不依赖 tick 对齐 ——
+    //   阶段1 ST_WAIT_CANCEL：急促短哔，提醒佩戴者按取消
+    //   阶段2 ST_SENT（已推送）：长鸣，吸引周围人注意
+    const uint32_t onMs  = (s_state == ST_SENT) ? ALARM_BEEP_ON_MS_LATE    : ALARM_BEEP_ON_MS;
+    const uint32_t perMs = (s_state == ST_SENT) ? ALARM_BEEP_PERIOD_MS_LATE : ALARM_BEEP_PERIOD_MS;
+    bool on = (elapsed % perMs) < onMs;
     if (on != s_beeping) {
         s_beeping = on;
         on ? buzzer_beep_on() : buzzer_beep_off();

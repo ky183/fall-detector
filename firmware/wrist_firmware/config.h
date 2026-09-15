@@ -13,6 +13,8 @@
 #define PIN_BTN_1           3       // 交互按钮（丝印 D2/GPIO3），另一端接 GND，内部上拉
                                     // 注：原定 D1(GPIO2)，实测该脚虚焊无响应，2026-09-07 迁移到 D2
                                     // 短按 = OLED 翻页/交互；长按 = 模拟跌倒（调试用）
+#define PIN_LED             8       // 状态指示 LED（PCB 上 LED1，丝印 D9/GPIO8，经 1kΩ 限流，高电平点亮）
+                                    // 闪烁含义见 hw_led.h：心跳=正常 慢闪=链路故障 快闪=MPU离线
 // 电池直接焊 BAT+/BAT- 焊盘，不占 GPIO
 
 // ================= 设备 I2C 地址 =================
@@ -43,6 +45,8 @@
 
 #define ENABLE_MPU6050      1       // 0 = 不读真实 MPU，填充模拟数据（无硬件也能调显示/通信）
 #define ENABLE_OLED         1       // 0 = 不初始化 OLED（屏没接/坏时调试其他模块）
+                                    // 屏不在时 init 自动失败但不阻塞，其余功能照常
+#define ENABLE_LED          1       // 0 = 不控制状态 LED（LED 未焊/调其他模块时）
 #define ENABLE_BUTTON       1       // 0 = 不扫描按钮
 #define ENABLE_ESPNOW       1       // 0 = 不初始化无线（未烧腰端/无天线时调试本地功能）
                                     // 注意：XIAO ESP32S3 需外接 U.FL 天线，不接也能收发但距离骤降

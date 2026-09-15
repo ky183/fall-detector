@@ -18,6 +18,7 @@
 #include "sensor_manager.h"
 #include "ui_oled.h"
 #include "ui_button.h"
+#include "hw_led.h"
 #include "net_espnow.h"
 #include <Wire.h>
 #include <freertos/FreeRTOS.h>
@@ -35,7 +36,9 @@ static void task_sensor(void* pv) {
     const TickType_t period = pdMS_TO_TICKS(1000 / SAMPLE_HZ);
     for (;;) {
         vTaskDelayUntil(&last, period);
-        if (!sensor_manager_read()) {
+        bool ok = sensor_manager_read();
+        led_report_mpu(ok);              // LED 快闪 = MPU 离线
+        if (!ok) {
             // MPU 离线（read 内部已重试），降频打印避免刷屏
             static uint32_t lastErr = 0;
             if (millis() - lastErr > 1000) {
@@ -60,6 +63,15 @@ static void task_tx(void* pv) {
             continue;   // 偶发拿不到锁：跳过本帧，不阻塞任务
         }
         espnow_send_data(snap);
+        led_report_tx(g_espnow_last_ok);   // LED 慢闪 = 连续发送失败（链路故障）
+    }
+}
+
+// 状态 LED：50ms 步进闪烁状态机（闪烁含义见 hw_led.h）
+static void task_led(void* pv) {
+    for (;;) {
+        vTaskDelay(pdMS_TO_TICKS(50));
+        led_tick();
     }
 }
 
@@ -110,7 +122,7 @@ static void task_display(void* pv) {
 void setup() {
     Serial.begin(SERIAL_BAUD);
     delay(200);
-    LOG_I("SYS", "=== wrist firmware v0.2 (btn=D2/GPIO3) ===");
+    LOG_I("SYS", "=== wrist firmware v0.5 (btn=D2, led=D9/GPIO8) ===");
 
     // I2C 总线先行（OLED 与 MPU 共用）
     Wire.begin(PIN_I2C_SDA, PIN_I2C_SCL);
@@ -137,6 +149,11 @@ void setup() {
     LOG_I("SYS", "button init ok (GPIO%d)", PIN_BTN_1);
 #endif
 
+#if ENABLE_LED
+    led_init();
+    LOG_I("SYS", "led init ok (GPIO%d)", PIN_LED);
+#endif
+
 #if ENABLE_ESPNOW
     espnow_init();
 #else
@@ -147,7 +164,10 @@ void setup() {
     xTaskCreatePinnedToCore(task_sensor,  "sensor",  4096, nullptr, 3, nullptr, 1);
     xTaskCreatePinnedToCore(task_tx,      "tx",      4096, nullptr, 3, nullptr, 1);
 #if ENABLE_BUTTON
-    xTaskCreatePinnedToCore(task_button,  "button",  2048, nullptr, 2, nullptr, 1);
+    xTaskCreatePinnedToCore(task_button, "button", 2048, nullptr, 2, nullptr, 1);
+#endif
+#if ENABLE_LED
+    xTaskCreatePinnedToCore(task_led,    "led",    2048, nullptr, 1, nullptr, 1);
 #endif
 #if ENABLE_OLED
     xTaskCreatePinnedToCore(task_display, "display", 4096, nullptr, 1, nullptr, 1);
