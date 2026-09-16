@@ -28,8 +28,10 @@
 // 腕端 MAC：当前不做过滤（按包内 devId 过滤），联调稳定后可改单播
 
 // ================= 报警参数（有源蜂鸣器：固定音调，节奏由通断时序控制） =================
-#define ALARM_CANCEL_WINDOW_MS   10000   // 触发报警后的取消窗口（毫秒）
 // 两段式报警音：取消窗内急促短哔（提醒本人取消），推送后转长鸣（吸引周围人）
+#define ALARM_CANCEL_WINDOW_MS   7000    // 触发报警后的取消窗口（毫秒）。
+                                         // 2026-09-14: 10s→7s，演示节奏更快；
+                                         // 量产定位建议 ≥8s（给老人留反应时间），下限 6s
 #define ALARM_BEEP_ON_MS         300     // 阶段1（取消窗内）哔声时长
 #define ALARM_BEEP_PERIOD_MS     500     // 阶段1 哔声周期（300 响 + 200 停）
 #define ALARM_BEEP_ON_MS_LATE    800     // 阶段2（已推送）哔声时长
@@ -95,9 +97,13 @@
 #define WIFI_TIMEOUT_MS     10000   // 推送时 WiFi 连接超时（毫秒）
 
 // ---- 推送工作模式 ----
-#define PUSH_ALWAYS_ON      1       // 1=常连模式：开机连WiFi并保持，推送即时（演示用）
-                                    // 0=按需连接：报警才连，推完释放信道给ESP-NOW
-                                    // 常连模式前提：热点信道 == ESPNOW_CHANNEL（见上）
+// ★ 2026-09-14 改 0（按需连接）：实测手机热点信道会自动漂移（ch6→ch11），
+//   常连模式每次漂移都断腕端链路。按需模式对任意信道热点鲁棒：
+//   平时不连 WiFi（腰端常驻 ESPNOW 信道），报警时才连，推完自动跳回。
+//   代价：微信收到时间 10s 窗 + ~5s 连接 + ~4s 发送 ≈ 16~20s
+#define PUSH_ALWAYS_ON      0       // 1=常连模式：开机连WiFi并保持，推送即时
+                                    //   ★前提：热点信道 == ESPNOW_CHANNEL，
+                                    //   失配时串口有 "!! wrist link BROKEN" 告警
 #define PUSH_RECONNECT_MS   60000   // 常连模式掉线后的静默重连间隔
 #define PUSH_MAX_ATTEMPTS   6       // 推送失败重试次数（间隔15s，补救窗口约90s+）
 
