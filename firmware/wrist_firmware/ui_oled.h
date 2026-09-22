@@ -18,6 +18,10 @@ struct UiInfo {
     uint8_t remainSec;    // 取消窗剩余秒（仅 WAIT 态有效）
     bool    cancelled;    // 报警被取消（3 秒提示窗内）
     bool    simActive;    // 模拟跌倒激活中（长按触发，本地调试提示）
+    // —— 时钟（腰端 NTP 同步后经 PKT_ACK 下发 epoch，.ino 换算为北京时间）——
+    bool    timeSynced;   // true=hh/mm 为真实时钟；false=显示运行时长
+    uint8_t hh, mm;       // 北京时间 时:分（仅 timeSynced 时有效）
+    uint32_t steps;       // 今日步数（v0.6 预留：pedometer 模块就绪前恒 0）
     float   svm;          // 最新 SVM（DEBUG_DISPLAY=1 显示）
     uint32_t uptime;      // 运行秒数
     uint32_t evtCnt;      // 按钮事件累计（DEBUG_DISPLAY=1 显示）

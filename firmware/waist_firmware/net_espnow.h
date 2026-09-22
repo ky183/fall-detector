@@ -15,4 +15,5 @@ void espnow_get_stats(uint32_t* rxCount, uint32_t* lostCount, uint32_t* lastRxAg
 
 // 报警状态回发（task_alarm 调用；腕端 MAC 取自首个收到的数据包，之前调用直接失败）
 // alarmState: ACK_ALARM_*；remainSec: 取消窗剩余秒（非 WAIT 态传 0）
-bool espnow_send_ack(uint8_t alarmState, uint8_t remainSec);
+// epochSec:   当前 UTC 秒（net_time_epoch()，未同步传 0，腕端自动忽略）
+bool espnow_send_ack(uint8_t alarmState, uint8_t remainSec, uint32_t epochSec);

@@ -141,15 +141,20 @@ void oled_update(const UiInfo& info) {
         display.setCursor(0, 56);
         display.println(info.linkOk ? "LINK: OK" : "LINK: --");
 #else
-        // —— 产品布局：运行时长大字（时间同步后为真实时钟）——
+        // —— 产品布局：时钟大字（未同步回退运行时长）+ 步数预留行 + 链路 ——
         snprintf(line, sizeof(line), "%02u:%02u:%02u",
                  (unsigned)(s / 3600), (unsigned)((s / 60) % 60), (unsigned)(s % 60));
+        if (info.timeSynced) {
+            snprintf(line, sizeof(line), "%02u:%02u",
+                     (unsigned)info.hh, (unsigned)info.mm);
+        }
         display.setTextSize(2);
-        display.setCursor(4, 24);
+        display.setCursor((128 - (int16_t)strlen(line) * 12) / 2, 20);
         display.print(line);
         display.setTextSize(1);
-        display.setCursor(0, 48);
-        display.print("STATE: NORMAL");
+        display.setCursor(0, 44);
+        snprintf(line, sizeof(line), "STEPS %lu", (unsigned long)info.steps);
+        display.print(line);
         display.setCursor(0, 56);
         display.println(info.linkOk ? "LINK: OK" : "LINK: --");
 #endif

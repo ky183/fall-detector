@@ -25,3 +25,7 @@ extern volatile uint8_t  g_alarm_state;      // 最近收到的 ACK_ALARM_*（0=
 extern volatile uint8_t  g_alarm_remain;     // 取消窗剩余秒（仅 WAIT 态有效）
 extern volatile uint32_t g_alarm_rx_ms;      // 最近一包 ACK 到达时刻（显示层做老化）
 extern volatile uint32_t g_cancel_until_ms;  // "已取消"提示截止时刻（回调置 3 秒）
+
+// —— 时钟锚点（PKT_ACK.epochSec，腰端 NTP 同步后 >0；本地 millis 外推走时）——
+extern volatile uint32_t g_epoch_anchor;     // 最近一次有效 epoch（0=从未同步）
+extern volatile uint32_t g_epoch_anchor_ms;  // 该 epoch 对应的本机 millis()

@@ -102,7 +102,7 @@ void espnow_get_stats(uint32_t* rxCount, uint32_t* lostCount, uint32_t* lastRxAg
 
 // ---- v0.6 报警状态回显（腰 → 腕 PKT_ACK 单播）----
 // 发送目标 = 首个收到的腕端数据包来源 MAC；还没收到过腕端的包则无从回发，直接返回
-bool espnow_send_ack(uint8_t alarmState, uint8_t remainSec) {
+bool espnow_send_ack(uint8_t alarmState, uint8_t remainSec, uint32_t epochSec) {
 #if ENABLE_ESPNOW && ENABLE_ALARM_ECHO
     if (!s_wrist_peer_added) {
         if (!s_src_logged) return false;   // 腕端尚未上线（无 MAC），本次放弃
@@ -125,13 +125,13 @@ bool espnow_send_ack(uint8_t alarmState, uint8_t remainSec) {
     pkt.h.seq   = s_ack_seq++;
     pkt.u.ack.alarmState = alarmState;
     pkt.u.ack.remainSec  = remainSec;
-    pkt.u.ack.uptimeSec  = (uint16_t)(millis() / 1000);
+    pkt.u.ack.epochSec   = epochSec;
     pkt.checksum = proto_checksum(&pkt);
 
     // esp_now_send 非阻塞（结果走回调，此处不注册 ACK 专用回调，丢了靠周期重发兜底）
     return (esp_now_send(s_wrist_mac, (uint8_t*)&pkt, sizeof(pkt)) == ESP_OK);
 #else
-    (void)alarmState; (void)remainSec;
+    (void)alarmState; (void)remainSec; (void)epochSec;
     return false;
 #endif
 }

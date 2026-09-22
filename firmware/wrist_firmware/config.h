@@ -30,7 +30,7 @@
 #define SAMPLE_HZ           50      // MPU 采样率（50Hz = 20ms 一次）
 #define BUTTON_POLL_MS      50      // 按钮扫描周期（去抖由 ui_button 内部处理）
 #define DISPLAY_PERIOD_MS   500     // OLED 刷新周期（慢速，省总线）
-#define BTN_LONG_PRESS_MS   2000    // 长按判定阈值（v0.6 由 1s 放宽：防误触，演示更从容）
+#define BTN_LONG_PRESS_MS   1000    // 长按判定阈值（演示方便触发，维持 1s）
 
 // ================= ESP-NOW 通信 =================
 // ★必须与腰端 ESPNOW_CHANNEL 一致；腰端常连WiFi模式下该值还须等于热点信道

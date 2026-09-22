@@ -24,6 +24,7 @@
 #include "alarm_manager.h"
 #include "net_espnow.h"
 #include "net_pusher.h"
+#include "net_time.h"
 #include <Wire.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
@@ -102,13 +103,30 @@ static void task_alarm(void* pv) {
                 uint32_t leftMs = ALARM_CANCEL_WINDOW_MS - alarm_elapsed_ms();
                 remain = (uint8_t)((leftMs + 999) / 1000);   // 向上取整（OLED 大字显示）
             }
-            espnow_send_ack((uint8_t)st, remain);
+            espnow_send_ack((uint8_t)st, remain, net_time_epoch());
+            s_echo_last_ms = now;
+        }
+        // NORMAL 态周期时间包：epoch 捎带给腕端时钟（未同步时 epoch=0，腕端忽略）
+        else if (st == ST_NORMAL && now - s_echo_last_ms >= TIME_SYNC_ECHO_MS) {
+            espnow_send_ack(ACK_ALARM_NORMAL, 0, net_time_epoch());
             s_echo_last_ms = now;
         }
         s_echo_last = st;
 #endif
     }
 }
+
+#if ENABLE_NTP_BOOT_SYNC
+// 开机延时一次性 NTP 时间同步（独立低优先级任务，绝不阻塞报警/判定链路）
+// 同步窗口内射频被 WiFi 占用（腕端 LED 慢闪），完成后自动回 ESP-NOW 信道
+static void task_timesync(void* pv) {
+    vTaskDelay(pdMS_TO_TICKS(NTP_BOOT_DELAY_MS));
+    if (net_time_sync()) {
+        LOG_I("SYS", "time ready (wrist clock will follow)");
+    }
+    vTaskDelete(nullptr);   // 一次性任务，结束自删
+}
+#endif
 
 // 链路统计：1Hz 打印收包/丢包（LOG_LEVEL>=3 时输出）
 static void task_stat(void* pv) {
@@ -164,6 +182,9 @@ void setup() {
 #endif
     xTaskCreatePinnedToCore(task_alarm,  "alarm",  2048, nullptr, 3, nullptr, 1);
     xTaskCreatePinnedToCore(task_stat,   "stat",   2048, nullptr, 1, nullptr, 1);
+#if ENABLE_NTP_BOOT_SYNC
+    xTaskCreatePinnedToCore(task_timesync, "timesync", 4096, nullptr, 1, nullptr, 1);
+#endif
 
     LOG_I("SYS", "all tasks started");
 }

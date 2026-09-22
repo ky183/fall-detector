@@ -98,6 +98,15 @@
 #define ENABLE_ALARM_ECHO   1       // v0.6 报警状态回显腕端（OLED 弹窗+取消倒计时）
                                     // 腰→腕新增 PKT_ACK 单播（状态变化时发+报警期低频重发）
                                     // 0 = 关闭回发，射频行为与 v0.5 完全一致（出问题回退用）
+
+// ---- 时间同步（v0.6，腕端 OLED 时钟源）----
+#define ENABLE_NTP_BOOT_SYNC   1   // 开机延时一次性 NTP 同步，epoch 经 PKT_ACK 下发腕端
+                                    // 独立低优先级任务执行，失败不影响任何功能
+                                    // ★同步窗口(~30s)内 ESP-NOW 暂断：腕端 LED 慢闪，设计内
+#define NTP_BOOT_DELAY_MS   20000   // 开机后延时再同步（先让双板链路稳定）
+#define NTP_WIFI_TIMEOUT_MS  8000   // WiFi 连接限时（热点没开则快速放弃）
+#define NTP_WAIT_TIMEOUT_MS  5000   // NTP 响应限时
+#define TIME_SYNC_ECHO_MS   60000   // NORMAL 态时间包周期（腕端时钟校准+断电恢复）
 #define WIFI_TIMEOUT_MS     10000   // 推送时 WiFi 连接超时（毫秒）
 
 // ---- 推送工作模式 ----

@@ -21,6 +21,10 @@ volatile uint8_t  g_alarm_remain    = 0;
 volatile uint32_t g_alarm_rx_ms     = 0;
 volatile uint32_t g_cancel_until_ms = 0;
 
+// —— 时钟锚点（PKT_ACK.epochSec 捎带下发，60s 周期刷新+报警包也带）——
+volatile uint32_t g_epoch_anchor    = 0;   // 0=从未同步（显示层回退运行时长）
+volatile uint32_t g_epoch_anchor_ms = 0;
+
 // 发送结果回调（ESP-NOW 异步返回，此函数在 WiFi 任务上下文执行，
 // 只做置位和日志，不做耗时操作）
 // 注意：板卡包 3.3.x 的签名为 (wifi_tx_info_t*, status)；
@@ -47,6 +51,12 @@ static void on_recv(const esp_now_recv_info_t* info, const uint8_t* data, int le
     g_alarm_state  = next;
     g_alarm_remain = pkt->u.ack.remainSec;
     g_alarm_rx_ms  = millis();
+
+    // 时钟锚点（epoch>0 才有效；每包刷新，兼顾漂移校准）
+    if (pkt->u.ack.epochSec != 0) {
+        g_epoch_anchor    = pkt->u.ack.epochSec;
+        g_epoch_anchor_ms = millis();
+    }
 }
 #endif
 

@@ -114,6 +114,14 @@ static void task_display(void* pv) {
         info.remainSec  = g_alarm_remain;
         info.cancelled  = (millis() < g_cancel_until_ms);
         info.simActive  = (millis() < g_sim_until);
+        // —— 时钟：腰端 NTP epoch → 北京时间；未同步时显示层回退运行时长 ——
+        if (g_epoch_anchor != 0) {
+            uint32_t epoch = g_epoch_anchor + (millis() - g_epoch_anchor_ms) / 1000;
+            uint32_t dayS  = (epoch + 8UL * 3600UL) % 86400UL;   // UTC+8
+            info.timeSynced = true;
+            info.hh = (uint8_t)(dayS / 3600);
+            info.mm = (uint8_t)((dayS % 3600) / 60);
+        }
         if (xSemaphoreTake(g_sensor_mutex, pdMS_TO_TICKS(10))) {
             info.svm = g_sensor_data.svm;
             xSemaphoreGive(g_sensor_mutex);
