@@ -36,7 +36,8 @@
 // 数据源=本机 SVM；RAM 计数重启清零；不通信、不占协议
 #define ENABLE_PEDOMETER    1       // 0 = 关闭（步数恒 0，排查问题用）
 #define PEDO_EMA_ALPHA      0.2f    // 动态幅值 EMA 低通系数（越小越平滑、响应越慢）
-#define PEDO_THRESHOLD_MS2  2.5f    // 记步阈值 m/s²（|SVM-9.81| 平滑后；低=灵敏误多，高=迟钝漏步）
+#define PEDO_THRESHOLD_MS2  2.0f    // 记步阈值 m/s²（|SVM-9.81| 平滑后；低=灵敏误多，高=迟钝漏步）
+                                    // 调参法：开 DEBUG_DISPLAY 走路看 SVM 峰值，阈值≈峰值×0.7
 #define PEDO_MIN_GAP_MS     250     // 两步最小间隔（人类步频上限 ~4Hz，防摆臂记多步）
 #define PEDO_MAX_GAP_MS     2000    // 两步最大间隔（超时视为行走中断，重新确认）
 #define PEDO_CONFIRM_STEPS  4       // 连续步确认门槛：连续走出第 4 步才计数（前几步补记），
