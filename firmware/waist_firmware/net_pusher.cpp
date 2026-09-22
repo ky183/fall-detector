@@ -73,19 +73,27 @@ static bool connect_wait(uint32_t timeout) {
             LOG_E("PUSH", "WiFi connect timeout (ssid=%s)", WIFI_SSID);
             // ★修复：超时必须终止后台连接尝试，给下一个 attempt 留干净状态
             WiFi.disconnect();
-            // ★诊断（只在失败路径，约 2s）：扫一遍空气，确认热点是否在 2.4G 广播
-            //   auth 对照：3=WPA2 4=WPA/WPA2混合 (WIFI_AUTH_WPA2_PSK / _WPA_WPA2_PSK)
+            // ★诊断（只在失败路径，约 2s）：扫一遍空气并列出扫到的 AP
+            //   - 有别的 AP 但没目标 → 热点没在广播（手机侧自动关/5G/隐藏）
+            //   - 一个都扫不到 → 固件/射频侧问题
+            //   auth 对照：3=WPA2 4=WPA/WPA2混合
             int16_t n = WiFi.scanNetworks();
+            LOG_E("PUSH", "diag: %d APs in air (2.4G full scan)", (int)n);
             bool found = false;
+            int shown = 0;
             for (int16_t i = 0; i < n; i++) {
                 if (WiFi.SSID(i) == WIFI_SSID) {
-                    LOG_E("PUSH", "diag: AP found ch=%d rssi=%d auth=%d",
+                    LOG_E("PUSH", "diag: TARGET AP found ch=%d rssi=%d auth=%d",
                           WiFi.channel(i), WiFi.RSSI(i), (int)WiFi.encryptionType(i));
                     found = true;
+                } else if (shown < 8) {
+                    LOG_E("PUSH", "diag:  other[%d] \"%s\" ch=%d rssi=%d",
+                          shown, WiFi.SSID(i).c_str(), WiFi.channel(i), WiFi.RSSI(i));
+                    shown++;
                 }
             }
             if (!found) {
-                LOG_E("PUSH", "diag: AP NOT in air (hotspot off / 5GHz-only / hidden?)");
+                LOG_E("PUSH", "diag: TARGET AP NOT in air (hotspot off / 5GHz-only / hidden?)");
             }
             WiFi.scanDelete();
             return false;
