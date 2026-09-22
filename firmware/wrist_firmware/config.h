@@ -32,6 +32,14 @@
 #define DISPLAY_PERIOD_MS   500     // OLED 刷新周期（慢速，省总线）
 #define BTN_LONG_PRESS_MS   1000    // 长按判定阈值（演示方便触发，维持 1s）
 
+// ================= 步数统计（v0.6，纯本地）=================
+// 数据源=本机 SVM；RAM 计数重启清零；不通信、不占协议
+#define ENABLE_PEDOMETER    1       // 0 = 关闭（步数恒 0，排查问题用）
+#define PEDO_EMA_ALPHA      0.2f    // 动态幅值 EMA 低通系数（越小越平滑、响应越慢）
+#define PEDO_THRESHOLD_MS2  1.5f    // 记步阈值 m/s²（|SVM-9.81| 平滑后；低=灵敏误多，高=迟钝漏步）
+#define PEDO_MIN_GAP_MS     250     // 两步最小间隔（人类步频上限 ~4Hz，防摆臂记多步）
+#define PEDO_MAX_GAP_MS     2000    // 两步最大间隔（超时重置检测状态）
+
 // ================= ESP-NOW 通信 =================
 // ★必须与腰端 ESPNOW_CHANNEL 一致；腰端常连WiFi模式下该值还须等于热点信道
 //   （2026-09-10 改 6 以匹配 vivo 热点实测信道，腰端串口有失配告警）

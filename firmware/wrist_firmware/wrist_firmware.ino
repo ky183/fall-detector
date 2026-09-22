@@ -19,6 +19,7 @@
 #include "ui_oled.h"
 #include "ui_button.h"
 #include "hw_led.h"
+#include "pedometer.h"
 #include "net_espnow.h"
 #include <Wire.h>
 #include <freertos/FreeRTOS.h>
@@ -38,6 +39,13 @@ static void task_sensor(void* pv) {
         vTaskDelayUntil(&last, period);
         bool ok = sensor_manager_read();
         led_report_mpu(ok);              // LED 快闪 = MPU 离线
+#if ENABLE_PEDOMETER
+        // 步数统计：读成功后取共享快照喂入（锁内纯计算，耗时纳秒级）
+        if (ok && xSemaphoreTake(g_sensor_mutex, pdMS_TO_TICKS(10))) {
+            pedometer_feed(g_sensor_data.svm);
+            xSemaphoreGive(g_sensor_mutex);
+        }
+#endif
         if (!ok) {
             // MPU 离线（read 内部已重试），降频打印避免刷屏
             static uint32_t lastErr = 0;
@@ -121,6 +129,7 @@ static void task_display(void* pv) {
         info.uptime = millis() / 1000;
         info.evtCnt = g_evt_cnt;
         info.linkOk = g_espnow_last_ok;
+        info.steps  = pedometer_get_steps();   // 今日步数（本地计数）
         oled_update(info);
     }
 }
