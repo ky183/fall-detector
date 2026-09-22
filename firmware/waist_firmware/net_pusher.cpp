@@ -73,6 +73,21 @@ static bool connect_wait(uint32_t timeout) {
             LOG_E("PUSH", "WiFi connect timeout (ssid=%s)", WIFI_SSID);
             // ★修复：超时必须终止后台连接尝试，给下一个 attempt 留干净状态
             WiFi.disconnect();
+            // ★诊断（只在失败路径，约 2s）：扫一遍空气，确认热点是否在 2.4G 广播
+            //   auth 对照：3=WPA2 4=WPA/WPA2混合 (WIFI_AUTH_WPA2_PSK / _WPA_WPA2_PSK)
+            int16_t n = WiFi.scanNetworks();
+            bool found = false;
+            for (int16_t i = 0; i < n; i++) {
+                if (WiFi.SSID(i) == WIFI_SSID) {
+                    LOG_E("PUSH", "diag: AP found ch=%d rssi=%d auth=%d",
+                          WiFi.channel(i), WiFi.RSSI(i), (int)WiFi.encryptionType(i));
+                    found = true;
+                }
+            }
+            if (!found) {
+                LOG_E("PUSH", "diag: AP NOT in air (hotspot off / 5GHz-only / hidden?)");
+            }
+            WiFi.scanDelete();
             return false;
         }
         vTaskDelay(pdMS_TO_TICKS(200));
