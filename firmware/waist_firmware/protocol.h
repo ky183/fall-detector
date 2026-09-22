@@ -54,10 +54,9 @@ struct CmdPayload {             // PKT_CMD 的载荷
     uint8_t arg;                // 命令参数，暂未用，置 0
 };
 
-struct AckPayload {             // PKT_ACK 的载荷（腰 → 腕）
+struct AckPayload {             // PKT_ACK 的载荷（腰 → 腕，报警状态回显）
     uint8_t  alarmState;        // ACK_ALARM_*（0=正常 1=取消窗内 2=已推送）
     uint8_t  remainSec;         // 取消窗剩余秒（向上取整，仅 WAIT 时有效）
-    uint32_t epochSec;          // 腰端当前 UTC 秒（NTP 同步后 >0；0=未同步，腕端忽略）
 };
 
 struct WristPacket {

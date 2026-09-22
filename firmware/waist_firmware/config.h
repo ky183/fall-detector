@@ -99,19 +99,6 @@
                                     // 腰→腕新增 PKT_ACK 单播（状态变化时发+报警期低频重发）
                                     // 0 = 关闭回发，射频行为与 v0.5 完全一致（出问题回退用）
 
-// ---- 时间同步（v0.6，腕端 OLED 时钟源）----
-// ★ 2026-09-22 暂关：热点可达性问题排查期间，射频行为与 v0.5 完全一致
-//   （置 0 = 时间相关代码全部不参与编译，等价于物理删除；腕端自动回退显示运行时长）
-#define ENABLE_NTP_BOOT_SYNC   0   // 1=开机一次性 NTP 同步，epoch 经 PKT_ACK 下发腕端
-                                    // 独立低优先级任务执行，失败不影响任何功能
-                                    // ★同步/扫描窗口内 ESP-NOW 暂断：腕端 LED 慢闪，设计内
-                                    // ★报警期间自动避让（推送要用 WiFi，绝不抢射频）
-#define NTP_BOOT_DELAY_MS    8000   // 开机后延时再同步（腕端 2s 内上线，链路已稳定）
-#define NTP_WIFI_TIMEOUT_MS  8000   // WiFi 连接限时（热点没开则快速放弃）
-#define NTP_WAIT_TIMEOUT_MS  5000   // NTP 响应限时
-#define NTP_RETRY_COUNT         3   // 失败自动重试次数（覆盖"开机后才开热点"场景）
-#define NTP_RETRY_PERIOD_MS 60000   // 重试间隔
-#define TIME_SYNC_ECHO_MS   60000   // NORMAL 态时间包周期（腕端时钟校准+断电恢复）
 #define WIFI_TIMEOUT_MS     10000   // 推送时 WiFi 连接超时（毫秒）
 
 // ---- 推送工作模式 ----
