@@ -32,11 +32,14 @@ bool net_time_sync(void) {
     if (s_epoch_anchor != 0) return true;   // 已同步过：幂等
 
     // 1) 连 WiFi（限时；热点没开就快速失败，不纠缠）
+    //    begin 前先 disconnect：清除可能残留的连接状态（与 pusher 修复同理）
+    WiFi.disconnect();
     WiFi.begin(WIFI_SSID, WIFI_PASS);
     uint32_t t0 = millis();
     while (WiFi.status() != WL_CONNECTED) {
         if (millis() - t0 > NTP_WIFI_TIMEOUT_MS) {
             LOG_I("TIME", "wifi timeout, time sync skipped (hotspot off?)");
+            WiFi.disconnect();       // 终止后台连接尝试，不留 connecting 残留
             wifi_release();
             return false;
         }

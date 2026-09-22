@@ -63,11 +63,16 @@ static bool wifi_ok(void) { return WiFi.status() == WL_CONNECTED; }
 // 阻塞等待连接（最长 timeout），成功返回 true
 static bool connect_wait(uint32_t timeout) {
     if (wifi_ok()) return true;
+    // ★修复：清除上一次未完成的连接状态（否则 STA 卡在 connecting，
+    //   后续 begin 报 "sta is connecting, cannot set config"，6 次重试全废）
+    WiFi.disconnect();
     WiFi.begin(WIFI_SSID, WIFI_PASS);
     uint32_t t0 = millis();
     while (!wifi_ok()) {
         if (millis() - t0 > timeout) {
             LOG_E("PUSH", "WiFi connect timeout (ssid=%s)", WIFI_SSID);
+            // ★修复：超时必须终止后台连接尝试，给下一个 attempt 留干净状态
+            WiFi.disconnect();
             return false;
         }
         vTaskDelay(pdMS_TO_TICKS(200));
