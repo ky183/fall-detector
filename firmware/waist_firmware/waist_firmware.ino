@@ -117,12 +117,29 @@ static void task_alarm(void* pv) {
 }
 
 #if ENABLE_NTP_BOOT_SYNC
-// 开机延时一次性 NTP 时间同步（独立低优先级任务，绝不阻塞报警/判定链路）
-// 同步窗口内射频被 WiFi 占用（腕端 LED 慢闪），完成后自动回 ESP-NOW 信道
+// 开机一次性 NTP 时间同步（独立低优先级任务，绝不阻塞报警/判定链路）
+// - 同步成功立即给腕端发一包时间（不等 60s 周期，上电 ~15s 腕端即有时钟）
+// - 失败自动重试（间隔 60s，覆盖"开机后才开热点"）
+// - 报警期间自动避让（推送要用 WiFi；等报警结束再试，不消耗重试次数）
 static void task_timesync(void* pv) {
     vTaskDelay(pdMS_TO_TICKS(NTP_BOOT_DELAY_MS));
-    if (net_time_sync()) {
-        LOG_I("SYS", "time ready (wrist clock will follow)");
+    int attempt = 0;
+    while (attempt < NTP_RETRY_COUNT) {
+        if (alarm_state() != ST_NORMAL) {          // 报警/推送进行中：避让
+            vTaskDelay(pdMS_TO_TICKS(5000));
+            continue;
+        }
+        attempt++;
+        if (net_time_sync()) {
+            espnow_send_ack(ACK_ALARM_NORMAL, 0, net_time_epoch());  // 立即下发
+            LOG_I("SYS", "time ready (wrist clock will follow)");
+            break;
+        }
+        if (attempt < NTP_RETRY_COUNT) {
+            LOG_I("SYS", "time sync attempt %d/%d failed, retry in %lus",
+                  attempt, NTP_RETRY_COUNT, (unsigned long)(NTP_RETRY_PERIOD_MS / 1000));
+            vTaskDelay(pdMS_TO_TICKS(NTP_RETRY_PERIOD_MS));
+        }
     }
     vTaskDelete(nullptr);   // 一次性任务，结束自删
 }
