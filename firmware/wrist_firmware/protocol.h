@@ -17,8 +17,13 @@
 enum PacketType : uint8_t {
     PKT_DATA = 0x01,   // 腕 → 腰：传感器数据（50Hz 周期发送）
     PKT_CMD  = 0x02,   // 腕 → 腰：控制命令（事件触发）
-    PKT_ACK  = 0x03,   // 腰 → 腕：应答/状态下发（预留，时间同步等）
+    PKT_ACK  = 0x03,   // 腰 → 腕：报警状态回显（v0.6）；后续时间同步等也走此类型
 };
+
+// PKT_ACK.alarmState 取值（与腰端 AlarmState 数值一致；腕端不引腰端头文件，用宏）
+#define ACK_ALARM_NORMAL   0    // 正常监测（报警被取消时腕端显示"已取消"3 秒）
+#define ACK_ALARM_WAIT     1    // 取消窗内（remainSec = 剩余秒数）
+#define ACK_ALARM_SENT     2    // 已过取消窗，推送中/已推送
 
 // ---------- 命令码（PKT_CMD 的 payload） ----------
 enum CmdCode : uint8_t {
@@ -49,11 +54,18 @@ struct CmdPayload {             // PKT_CMD 的载荷
     uint8_t arg;                // 命令参数，暂未用，置 0
 };
 
+struct AckPayload {             // PKT_ACK 的载荷（腰 → 腕，v0.6 报警状态回显）
+    uint8_t  alarmState;        // ACK_ALARM_*（0=正常 1=取消窗内 2=已推送）
+    uint8_t  remainSec;         // 取消窗剩余秒（向上取整，仅 WAIT 时有效）
+    uint16_t uptimeSec;         // 腰端开机秒数（预留：时间同步/状态诊断）
+};
+
 struct WristPacket {
     PacketHeader h;
     union {                     // 按 h.type 解释
         SensorPayload data;
         CmdPayload    cmd;
+        AckPayload    ack;
     } u;
     uint8_t checksum;           // 头 + payload 的字节累加和（低 8 位）
 };

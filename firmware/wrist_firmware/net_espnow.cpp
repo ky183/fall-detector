@@ -15,6 +15,12 @@ static uint8_t s_waist_mac[6] = WAIST_MAC;
 static uint8_t s_seq = 0;                 // 发送序号
 volatile bool g_espnow_last_ok = false;   // 最近一次发送结果
 
+// —— 腰端报警状态回显（PKT_ACK，v0.6）——
+volatile uint8_t  g_alarm_state     = ACK_ALARM_NORMAL;
+volatile uint8_t  g_alarm_remain    = 0;
+volatile uint32_t g_alarm_rx_ms     = 0;
+volatile uint32_t g_cancel_until_ms = 0;
+
 // 发送结果回调（ESP-NOW 异步返回，此函数在 WiFi 任务上下文执行，
 // 只做置位和日志，不做耗时操作）
 // 注意：板卡包 3.3.x 的签名为 (wifi_tx_info_t*, status)；
@@ -22,6 +28,25 @@ volatile bool g_espnow_last_ok = false;   // 最近一次发送结果
 static void on_sent(const wifi_tx_info_t* info, esp_now_send_status_t st) {
     (void)info;
     g_espnow_last_ok = (st == ESP_NOW_SEND_SUCCESS);
+}
+
+// 接收回调：腰端 PKT_ACK（报警状态回显）。WiFi 任务上下文，只写 volatile
+static void on_recv(const esp_now_recv_info_t* info, const uint8_t* data, int len) {
+    (void)info;
+    if (len != sizeof(WristPacket)) return;               // 长度不符，丢弃
+    const WristPacket* pkt = reinterpret_cast<const WristPacket*>(data);
+    if (!proto_valid(pkt)) return;                        // 魔数/校验和不过，丢弃
+    if (pkt->h.devId != DEV_ID_WAIST) return;             // 只收腰端的包
+    if (pkt->h.type != PKT_ACK) return;                   // 腕端只处理 ACK
+
+    uint8_t next = pkt->u.ack.alarmState;
+    // 报警中收到 NORMAL = 腰端按钮取消成功 → "已取消"提示 3 秒
+    if (next == ACK_ALARM_NORMAL && g_alarm_state != ACK_ALARM_NORMAL) {
+        g_cancel_until_ms = millis() + 3000;
+    }
+    g_alarm_state  = next;
+    g_alarm_remain = pkt->u.ack.remainSec;
+    g_alarm_rx_ms  = millis();
 }
 #endif
 
@@ -39,6 +64,7 @@ bool espnow_init(void) {
         return false;
     }
     esp_now_register_send_cb(on_sent);
+    esp_now_register_recv_cb(on_recv);   // v0.6：接收腰端 PKT_ACK（报警状态回显）
 
     // 注册对端
     esp_now_peer_info_t peer = {};

@@ -19,8 +19,11 @@ static volatile uint32_t s_last_rx_ms = 0;   // 最近一包时刻
 static volatile bool     s_last_seq_valid = false;
 static volatile uint8_t  s_last_seq = 0;
 
-// 首包来源 MAC（打印供单播配置参考）
+// 首包来源 MAC（打印供单播配置参考；v0.6 同时缓存，作为 ACK 回发目标）
 static bool s_src_logged = false;
+static uint8_t s_wrist_mac[6] = {0};      // 腕端 MAC（收到首包时缓存，此后不变）
+static bool s_wrist_peer_added = false;   // ACK 回发 peer 是否已注册
+static uint8_t s_ack_seq = 0;             // ACK 发送序号（抓包区分用，不参与丢包统计）
 
 // 接收回调（WiFi 任务上下文执行，只做轻量处理，禁止阻塞/延时）
 static void on_recv(const esp_now_recv_info_t* info, const uint8_t* data, int len) {
@@ -33,6 +36,7 @@ static void on_recv(const esp_now_recv_info_t* info, const uint8_t* data, int le
         const uint8_t* m = info->src_addr;
         LOG_I("NET", "wrist MAC: %02X:%02X:%02X:%02X:%02X:%02X (recorded)",
               m[0], m[1], m[2], m[3], m[4], m[5]);
+        memcpy(s_wrist_mac, m, 6);
         s_src_logged = true;
     }
 
@@ -94,4 +98,40 @@ void espnow_get_stats(uint32_t* rxCount, uint32_t* lostCount, uint32_t* lastRxAg
     if (lastRxAgeMs) {
         *lastRxAgeMs = s_last_seq_valid ? (millis() - s_last_rx_ms) : 0;
     }
+}
+
+// ---- v0.6 报警状态回显（腰 → 腕 PKT_ACK 单播）----
+// 发送目标 = 首个收到的腕端数据包来源 MAC；还没收到过腕端的包则无从回发，直接返回
+bool espnow_send_ack(uint8_t alarmState, uint8_t remainSec) {
+#if ENABLE_ESPNOW && ENABLE_ALARM_ECHO
+    if (!s_wrist_peer_added) {
+        if (!s_src_logged) return false;   // 腕端尚未上线（无 MAC），本次放弃
+        esp_now_peer_info_t peer = {};
+        memcpy(peer.peer_addr, s_wrist_mac, 6);
+        peer.channel = ESPNOW_CHANNEL;
+        peer.encrypt = false;
+        if (esp_now_add_peer(&peer) != ESP_OK) {
+            LOG_E("NET", "ack add_peer failed");
+            return false;
+        }
+        s_wrist_peer_added = true;
+        LOG_I("NET", "ack peer added (wrist unicast)");
+    }
+
+    WristPacket pkt = {};
+    pkt.h.magic = 0xA5;
+    pkt.h.devId = DEV_ID_WAIST;
+    pkt.h.type  = PKT_ACK;
+    pkt.h.seq   = s_ack_seq++;
+    pkt.u.ack.alarmState = alarmState;
+    pkt.u.ack.remainSec  = remainSec;
+    pkt.u.ack.uptimeSec  = (uint16_t)(millis() / 1000);
+    pkt.checksum = proto_checksum(&pkt);
+
+    // esp_now_send 非阻塞（结果走回调，此处不注册 ACK 专用回调，丢了靠周期重发兜底）
+    return (esp_now_send(s_wrist_mac, (uint8_t*)&pkt, sizeof(pkt)) == ESP_OK);
+#else
+    (void)alarmState; (void)remainSec;
+    return false;
+#endif
 }

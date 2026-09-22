@@ -30,7 +30,7 @@
 #define SAMPLE_HZ           50      // MPU 采样率（50Hz = 20ms 一次）
 #define BUTTON_POLL_MS      50      // 按钮扫描周期（去抖由 ui_button 内部处理）
 #define DISPLAY_PERIOD_MS   500     // OLED 刷新周期（慢速，省总线）
-#define BTN_LONG_PRESS_MS   1000    // 长按判定阈值
+#define BTN_LONG_PRESS_MS   2000    // 长按判定阈值（v0.6 由 1s 放宽：防误触，演示更从容）
 
 // ================= ESP-NOW 通信 =================
 // ★必须与腰端 ESPNOW_CHANNEL 一致；腰端常连WiFi模式下该值还须等于热点信道
@@ -46,6 +46,10 @@
 #define ENABLE_MPU6050      1       // 0 = 不读真实 MPU，填充模拟数据（无硬件也能调显示/通信）
 #define ENABLE_OLED         1       // 0 = 不初始化 OLED（屏没接/坏时调试其他模块）
                                     // 屏不在时 init 自动失败但不阻塞，其余功能照常
+                                    // 正常页布局由 DEBUG_DISPLAY 切换（见下）
+#define DEBUG_DISPLAY       0       // 1 = OLED 正常页用调试布局（SVM 大字+事件计数）
+                                    // 0 = 产品布局（时长大字+状态/链路）
+                                    // 报警弹窗/已推送/已取消页不受此开关影响（始终显示）
 #define ENABLE_LED          1       // 0 = 不控制状态 LED（LED 未焊/调其他模块时）
 #define ENABLE_BUTTON       1       // 0 = 不扫描按钮
 #define ENABLE_ESPNOW       1       // 0 = 不初始化无线（未烧腰端/无天线时调试本地功能）

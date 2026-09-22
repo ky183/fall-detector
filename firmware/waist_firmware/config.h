@@ -94,6 +94,10 @@
                                     // 需要 secrets.h（复制 secrets.h.example 填真实值）
                                     // ★ 该文件不入库；缺失时 net_pusher 自动降级为
                                     //   占位实现并给编译告警，不会让工程编译不过
+
+#define ENABLE_ALARM_ECHO   1       // v0.6 报警状态回显腕端（OLED 弹窗+取消倒计时）
+                                    // 腰→腕新增 PKT_ACK 单播（状态变化时发+报警期低频重发）
+                                    // 0 = 关闭回发，射频行为与 v0.5 完全一致（出问题回退用）
 #define WIFI_TIMEOUT_MS     10000   // 推送时 WiFi 连接超时（毫秒）
 
 // ---- 推送工作模式 ----

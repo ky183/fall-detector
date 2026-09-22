@@ -82,10 +82,31 @@ static void task_button(void* pv) {
 }
 
 // 报警状态机步进：哔哔节拍 + 取消窗口超时推送
+// v0.6：报警状态变化/报警期间低频重发 PKT_ACK 给腕端（OLED 弹窗显示用）
 static void task_alarm(void* pv) {
+    static AlarmState s_echo_last = ST_NORMAL;
+    static uint32_t   s_echo_last_ms = 0;
     for (;;) {
         vTaskDelay(pdMS_TO_TICKS(ALARM_TICK_MS));
         alarm_tick();
+#if ENABLE_ALARM_ECHO
+        AlarmState st  = alarm_state();
+        uint32_t   now = millis();
+        // 发送时机：状态变化立即发；取消窗内 2Hz 重发；推送后 1Hz 重发（丢包兜底）
+        bool echo = (st != s_echo_last)
+                 || (st == ST_WAIT_CANCEL && now - s_echo_last_ms >= 500)
+                 || (st == ST_SENT       && now - s_echo_last_ms >= 1000);
+        if (echo) {
+            uint8_t remain = 0;
+            if (st == ST_WAIT_CANCEL) {
+                uint32_t leftMs = ALARM_CANCEL_WINDOW_MS - alarm_elapsed_ms();
+                remain = (uint8_t)((leftMs + 999) / 1000);   // 向上取整（OLED 大字显示）
+            }
+            espnow_send_ack((uint8_t)st, remain);
+            s_echo_last_ms = now;
+        }
+        s_echo_last = st;
+#endif
     }
 }
 

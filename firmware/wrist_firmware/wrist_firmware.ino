@@ -105,8 +105,15 @@ static void task_display(void* pv) {
         vTaskDelay(pdMS_TO_TICKS(DISPLAY_PERIOD_MS));
 
         UiInfo info = {};
-        info.alarm     = false;                       // 报警状态在腰端，腕端骨架恒 NORMAL
-        info.simActive = (millis() < g_sim_until);
+        // —— 腰端报警状态（v0.6 PKT_ACK 回显；4s 无新包则老化回正常，防误锁弹窗）——
+        uint8_t st = g_alarm_state;
+        if (st != ACK_ALARM_NORMAL && millis() - g_alarm_rx_ms > 4000) {
+            st = ACK_ALARM_NORMAL;
+        }
+        info.alarmState = st;
+        info.remainSec  = g_alarm_remain;
+        info.cancelled  = (millis() < g_cancel_until_ms);
+        info.simActive  = (millis() < g_sim_until);
         if (xSemaphoreTake(g_sensor_mutex, pdMS_TO_TICKS(10))) {
             info.svm = g_sensor_data.svm;
             xSemaphoreGive(g_sensor_mutex);
@@ -122,7 +129,7 @@ static void task_display(void* pv) {
 void setup() {
     Serial.begin(SERIAL_BAUD);
     delay(200);
-    LOG_I("SYS", "=== wrist firmware v0.5 (btn=D2, led=D9/GPIO8) ===");
+    LOG_I("SYS", "=== wrist firmware v0.6 (alarm echo + product UI) ===");
 
     // I2C 总线先行（OLED 与 MPU 共用）
     Wire.begin(PIN_I2C_SDA, PIN_I2C_SCL);
