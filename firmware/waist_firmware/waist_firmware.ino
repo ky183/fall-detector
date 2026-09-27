@@ -82,33 +82,43 @@ static void task_button(void* pv) {
 }
 
 // 报警状态机步进：哔哔节拍 + 取消窗口超时推送
-// v0.6：报警状态变化/报警期间低频重发 PKT_ACK 给腕端（OLED 弹窗显示用）
+// ★此任务必须纯净：只调 alarm_tick()，绝不碰射频/WiFi API——
+//   v0.6 曾把回显发送放在这里，推送连 WiFi 期间 esp_now_send 被射频驱动
+//   拖住，导致 alarm_tick 停跑、蜂鸣器响 7 秒后停（已修复，见 task_alarm_echo）
 static void task_alarm(void* pv) {
-    static AlarmState s_echo_last = ST_NORMAL;
-    static uint32_t   s_echo_last_ms = 0;
     for (;;) {
         vTaskDelay(pdMS_TO_TICKS(ALARM_TICK_MS));
         alarm_tick();
+    }
+}
+
 #if ENABLE_ALARM_ECHO
+// 报警状态回显发送：独立低优先级任务（宁可它被拖住，不拖蜂鸣节拍）
+// 发送时机：状态变化立即发；取消窗内 2Hz 重发（此阶段无 WiFi 活动，安全）。
+// ★ST_SENT 期间不重发：推送正在连 WiFi，发包与射频驱动并发会阻塞调用者
+//   （腕端若错过 SENT 那一包，4s 后自动老化回正常页，属可接受的降级）
+static void task_alarm_echo(void* pv) {
+    static AlarmState s_last = ST_NORMAL;
+    static uint32_t   s_last_ms = 0;
+    for (;;) {
+        vTaskDelay(pdMS_TO_TICKS(200));
         AlarmState st  = alarm_state();
         uint32_t   now = millis();
-        // 发送时机：状态变化立即发；取消窗内 2Hz 重发；推送后 1Hz 重发（丢包兜底）
-        bool echo = (st != s_echo_last)
-                 || (st == ST_WAIT_CANCEL && now - s_echo_last_ms >= 500)
-                 || (st == ST_SENT       && now - s_echo_last_ms >= 1000);
-        if (echo) {
+        bool send = (st != s_last)
+                 || (st == ST_WAIT_CANCEL && now - s_last_ms >= 500);
+        if (send) {
             uint8_t remain = 0;
             if (st == ST_WAIT_CANCEL) {
                 uint32_t leftMs = ALARM_CANCEL_WINDOW_MS - alarm_elapsed_ms();
                 remain = (uint8_t)((leftMs + 999) / 1000);   // 向上取整（OLED 大字显示）
             }
             espnow_send_ack((uint8_t)st, remain);
-            s_echo_last_ms = now;
+            s_last_ms = now;
         }
-        s_echo_last = st;
-#endif
+        s_last = st;
     }
 }
+#endif
 
 // 链路统计：1Hz 打印收包/丢包（LOG_LEVEL>=3 时输出）
 static void task_stat(void* pv) {
@@ -164,6 +174,9 @@ void setup() {
 #endif
     xTaskCreatePinnedToCore(task_alarm,  "alarm",  2048, nullptr, 3, nullptr, 1);
     xTaskCreatePinnedToCore(task_stat,   "stat",   2048, nullptr, 1, nullptr, 1);
+#if ENABLE_ALARM_ECHO
+    xTaskCreatePinnedToCore(task_alarm_echo, "alarm_echo", 3072, nullptr, 1, nullptr, 1);
+#endif
 
     LOG_I("SYS", "all tasks started");
 }
