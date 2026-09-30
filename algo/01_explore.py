@@ -25,7 +25,7 @@ from sisfall import DATA_DIR, load_file, tilt_angle, G
 OUT_DIR = Path(__file__).resolve().parent / "out"
 OUT_DIR.mkdir(exist_ok=True)
 
-# 4 类代表动作（case 说明写英文，直接可用于答辩 PPT）
+# 4 类代表动作（case 说明写英文，便于直接引用）
 CASES = [
     ("D01_SA01_R01.txt", "Walk slowly (ADL)"),
     ("D19_SA01_R01.txt", "Gentle jump (hard ADL)"),      # 跳：有冲击，但人马上继续动
@@ -95,7 +95,7 @@ def main():
     for label, pk, rest, pstd in rows:
         print(f"{label:<38}{pk:>12.1f}{rest:>20.1f}{pstd:>20.1f}")
     print("""
-读表方法（答辩讲稿）:
+读表方法:
   - Quick sit 的冲击(3.5g)接近跌倒 -> 只用冲击必误报
   - 跳/坐的 rest |dTilt| 很小, 跌倒 >40deg -> 姿态是关键判别维度
   - 跌倒后 post SVM std 低(静止), 日常动作后恢复波动 -> 活动量兜底
