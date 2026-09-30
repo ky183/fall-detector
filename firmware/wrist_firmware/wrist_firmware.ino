@@ -4,13 +4,14 @@
 //  职责：采集姿态 → OLED 显示 → ESP-NOW 发送 → 腰端
 //
 //  任务一览（FreeRTOS，全部跑在 core1，WiFi 协议栈在 core0）：
-//    task_sensor   50Hz  高   读 MPU → 写共享数据 g_sensor_data
+//    task_sensor   50Hz  高   读 MPU → 写共享数据 g_sensor_data（含步数统计）
 //    task_tx       50Hz  高   读共享数据 → ESP-NOW 发送
 //    task_button   20Hz  中   按钮扫描（去抖+短/长按）
+//    task_led      20Hz  低   状态 LED 步进闪烁
 //    task_display   2Hz  低   OLED 刷新
 //
 //  跌倒判定不在腕端：ENABLE_FALL_DETECT=0 时长按按钮发"模拟跌倒"
-//  命令给腰端，用于算法到位前调通整条报警链路
+//  命令给腰端，触发完整报警链路（主动呼救 / 联调模拟共用）
 // ============================================================
 #include "config.h"
 #include "logger.h"
@@ -83,7 +84,7 @@ static void task_led(void* pv) {
     }
 }
 
-// 按钮扫描：短按=交互（翻页 TODO），长按=模拟跌倒（调试）
+// 按钮扫描：短按=交互（翻页 TODO），长按=主动呼救（联调时兼作模拟跌倒）
 static void task_button(void* pv) {
     for (;;) {
         vTaskDelay(pdMS_TO_TICKS(BUTTON_POLL_MS));

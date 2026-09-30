@@ -8,6 +8,7 @@
 //    task_detect  50Hz  高   组装两端数据 → fall_detector（算法组）
 //    task_button  20Hz  中   取消按钮扫描（去抖）
 //    task_alarm   10Hz  高   报警状态机（哔哔节拍 + 推送窗口）
+//    task_alarm_echo 5Hz 低  报警状态回显发送（独立任务，避免射频操作拖住蜂鸣节拍）
 //    task_stat     1Hz  低   链路统计打印（收包/丢包）
 //
 //  烧录（重要）：
@@ -135,7 +136,7 @@ static void task_stat(void* pv) {
 void setup() {
     Serial.begin(SERIAL_BAUD);
     delay(200);
-    LOG_I("SYS", "=== waist firmware v0.1 (skeleton) ===");
+    LOG_I("SYS", "=== waist firmware v0.6 (alarm echo moved to own task) ===");
 
     // I2C：大板 GPIO8/9（默认 100kHz，稳定性优先）
     Wire.begin(PIN_I2C_SDA, PIN_I2C_SCL);

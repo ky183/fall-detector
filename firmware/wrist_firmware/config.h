@@ -8,17 +8,17 @@
 // ================= 硬件引脚 =================
 // XIAO S3：D4 = GPIO5(SDA)，D5 = GPIO6(SCL)
 // 依据官方板卡包 variants/XIAO_ESP32S3/pins_arduino.h
-#define PIN_I2C_SDA         5       // OLED + MPU6050 共用 I2C 总线
+#define PIN_I2C_SDA         5       // OLED + MPU6500 共用 I2C 总线
 #define PIN_I2C_SCL         6
 #define PIN_BTN_1           3       // 交互按钮（丝印 D2/GPIO3），另一端接 GND，内部上拉
                                     // 注：原定 D1(GPIO2)，实测该脚虚焊无响应，2026-09-07 迁移到 D2
-                                    // 短按 = OLED 翻页/交互；长按 = 模拟跌倒（调试用）
+                                    // 短按 = OLED 翻页/交互；长按 = 主动呼救（联调时兼作模拟跌倒）
 #define PIN_LED             8       // 状态指示 LED（PCB 上 LED1，丝印 D9/GPIO8，经 1kΩ 限流，高电平点亮）
                                     // 闪烁含义见 hw_led.h：心跳=正常 慢闪=链路故障 快闪=MPU离线
 // 电池直接焊 BAT+/BAT- 焊盘，不占 GPIO
 
 // ================= 设备 I2C 地址 =================
-#define ADDR_MPU6050        0x68    // GY-521 默认（AD0 悬空）
+#define ADDR_MPU6050        0x68    // MPU6500/MPU6050 同为 0x68（AD0 悬空）
 #define ADDR_OLED           0x3C    // SSD1306 默认
 
 // ================= OLED 参数 =================
